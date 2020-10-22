@@ -1,0 +1,158 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "Template for provision lambda, CloudWatch events, SNS and related IAM resources",
+    "Parameters" : {
+        "LambdaS3Bucket" : {
+            "Type" : "String",
+            "Description" : "Enter the S3 bucket where the lambda deployment zip package resides"
+        },
+        "LambdaS3Object" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the lambda deployment package zip file"
+        },
+        "FileSystemId" : {
+            "Type" : "String",
+            "Description" : "Please enter a FSx file system ID to monitor"
+        },
+        "IncreasePercentage" : {
+            "Type" : "Number",
+            "Description" : "Please enter for how many % you want to increase the FSx storage (minimum 10)",
+            "MinValue" : "10"
+        },
+        "NotificationEmail" : {
+            "Type" : "String",
+            "Description" : "Please enter a email used for sending scaling alert notification"
+        }
+    },
+    "Resources" : {
+        "FSxAutoscaleLambdaRole" : {
+                "Type" : "AWS::IAM::Role",
+                "Properties" : {
+                    "AssumeRolePolicyDocument" : {
+                        "Version" : "2012-10-17",
+                        "Statement" : [
+                            {
+                                "Effect" : "Allow",
+                                "Principal" : {
+                                    "Service" : [
+                                        "lambda.amazonaws.com"
+                                    ]
+                                },
+                                "Action" : [
+                                    "sts:AssumeRole"
+                                ]
+                            }
+                        ]
+                    },
+                    "Path" : "/",
+                    "Policies" : [
+                        {
+                            "PolicyName" : "FSxLambdaCWSNS",
+                            "PolicyDocument" : {
+                                "Version" : "2012-10-17",
+                                "Statement" : [
+                                    {
+                                        "Effect" : "Allow",
+                                        "Action" : [
+                                            "ds:DescribeDirectories",
+                                            "FSx:DescribeFileSystems",
+                                            "FSx:UpdateFileSystem",
+                                            "autoscaling:Describe*",
+                                            "cloudwatch:Describe*",
+                                            "cloudwatch:Get*",
+                                            "cloudwatch:List*",
+                                            "logs:Get*",
+                                            "logs:List*",
+                                            "logs:Describe*",
+                                            "logs:TestMetricFilter",
+                                            "logs:FilterLogEvents",
+                                            "sns:Get*",
+                                            "sns:List*",
+                                            "sns:Publish",
+                                            "logs:CreateLogGroup",
+                                            "logs:CreateLogStream",
+                                            "logs:PutLogEvents"
+                                        ],
+                                        "Resource" : "*"
+                                    }
+                                ]
+                            }
+                        }
+                    ] 
+                }
+        },
+        "FSxAutoscaleSNSTopic" : {
+            "Type" : "AWS::SNS::Topic",
+            "Properties" : {
+                "DisplayName" : "FSx_Scale_Alert",
+                "TopicName" : "FSxScaleNotification"
+            }
+        },
+        "FSxAutoscaleSnsSubscription" : {
+            "Type" : "AWS::SNS::Subscription",
+            "Properties" : {
+                "Endpoint" : {"Ref" : "NotificationEmail"},
+                "Protocol" : "email",
+                "TopicArn" : { "Ref" : "FSxAutoscaleSNSTopic"}
+            }
+        },
+        "FSxAutoscaleLambda" : {
+            "Type" : "AWS::Lambda::Function",
+            "Properties" : {
+                "Handler" :  "lambda_function.lambda_handler",
+                "Role" : {
+                    "Fn::GetAtt" : [
+                        "FSxAutoscaleLambdaRole",
+                        "Arn"
+                    ]
+                },
+                "Code" : {
+                    "S3Bucket" : { "Ref" : "LambdaS3Bucket" },
+                    "S3Key" : { "Ref" : "LambdaS3Object" }
+                },
+                "Runtime" : "python3.7",
+                "Timeout" : 30,
+                "Environment" : {
+                    "Variables" : {
+                        "FileSystemId" : {"Ref" : "FileSystemId"},
+                        "IncreasePercentage" : {"Ref" : "IncreasePercentage"},
+                        "SNSId" : {"Ref" : "FSxAutoscaleSNSTopic"}
+                    }
+                }
+            }
+        },
+        "ScheduledRule" : {
+            "Type" : "AWS::Events::Rule",
+            "Properties" : {
+                "Description" : "Scheduled rule to check FSx capacity",
+                "ScheduleExpression" : "rate(15 minutes)",
+                "State" : "ENABLED",
+                "Targets" : [
+                    {
+                        "Arn" : { "Fn::GetAtt" : ["FSxAutoscaleLambda", "Arn"] },
+                        "Id" : "TargetFSxLambda"
+                    }
+                ]
+            }
+        },
+        "PermissionForEventsToInvokeLambda": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": { "Ref": "FSxAutoscaleLambda" },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": { "Fn::GetAtt": ["ScheduledRule", "Arn"] }
+            }
+        }
+    },
+    "Outputs" : {
+        "SNSID" : {
+            "Description" : "Arn of SNS Topic created",
+            "Value" : {"Ref" : "FSxAutoscaleSNSTopic"}
+        },
+        "LambdaID" : {
+            "Description" : "Arn of lambda function created",
+            "Value" : {"Ref" : "FSxAutoscaleLambda"}
+        }
+    }
+}
