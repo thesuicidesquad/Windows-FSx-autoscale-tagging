@@ -1,0 +1,231 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "Template for provision lambda that adds tags to FSx Windows File server ,and required IAM resources",
+    "Parameters" : {
+        "CronExpression" : {
+            "Type" : "String",
+            "Description" : "Cron expression for scheduling the tag backup Lambda function, https://docs.aws.amazon.com/eventbridge/latest/userguide/scheduled-events.html"
+        },
+        "LambdaS3Bucket" : {
+            "Type" : "String",
+            "Description" : "Enter the S3 bucket where the lambda deployment zip package resides"
+        },
+        "LambdaS3Object" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the lambda deployment package zip file"
+        },
+        "BackupTagKey1" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server, check https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html for rules regarding tagging AWS resources"
+        },
+        "BackupTagValue1" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        },
+        "BackupTagKey2" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server"
+        },
+        "BackupTagValue2" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        },
+        "BackupTagKey3" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server"
+        },
+        "BackupTagValue3" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        },
+        "BackupTagKey4" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server"
+        },
+        "BackupTagValue4" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        },
+        "BackupTagKey5" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server"
+        },
+        "BackupTagValue5" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        },
+        "BackupTagKey6" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server"
+        },
+        "BackupTagValue6" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        },
+        "BackupTagKey7" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server"
+        },
+        "BackupTagValue7" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        },
+        "BackupTagKey8" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server"
+        },
+        "BackupTagValue8" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        },
+        "BackupTagKey9" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server"
+        },
+        "BackupTagValue9" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        },
+        "BackupTagKey10" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag key for the FSx file server"
+        },
+        "BackupTagValue10" : {
+            "Type" : "String",
+            "Description" : "Enter the name of the required tag value for the FSx file server"
+        }
+    },
+    "Resources" : {
+        "FSxTagBackupLambdaRole" : {
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument" : {
+                    "Version" : "2012-10-17",
+                    "Statement" : [
+                        {
+                            "Effect" : "Allow",
+                            "Principal" : {
+                                "Service" : [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action" : [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path" : "/",
+                "Policies" : [
+                    {
+                        "PolicyName" : "FSxLambdaTagBackups",
+                        "PolicyDocument" : {
+                            "Version" : "2012-10-17",
+                            "Statement" : [
+                                {
+                                    "Effect" : "Allow",
+                                    "Action" : [
+                                        
+                                        "FSx:DescribeBackups",
+                                        "FSx:DescribeFileSystems",
+                                        "FSx:ListTagsForResource",
+                                        "FSx:TagResource",
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource" : "*"
+                                }
+                            ]
+                        }
+                    }
+                ] 
+            }
+        },
+        "FSxTagBackupLambda" : {
+            "Type" : "AWS::Lambda::Function",
+            "Properties" : {
+                "Handler" :  "lambda_function.lambda_handler",
+                "Role" : {
+                    "Fn::GetAtt" : [
+                        "FSxTagBackupLambdaRole",
+                        "Arn"
+                    ]
+                },
+                "Code" : {
+                    "S3Bucket" : { "Ref" : "LambdaS3Bucket" },
+                    "S3Key" : { "Ref" : "LambdaS3Object" }
+                },
+                "Runtime" : "python3.7",
+                "Timeout" : 30,
+                "Environment" : {
+                    "Variables" : {
+                        "BackupTagKey1" : {"Ref" : "BackupTagKey1"},
+                        "BackupTagValue1" : {"Ref" : "BackupTagValue1"},
+                        "BackupTagKey2" : {"Ref" : "BackupTagKey2"},
+                        "BackupTagValue2" : {"Ref" : "BackupTagValue2"},
+                        "BackupTagKey3" : {"Ref" : "BackupTagKey3"},
+                        "BackupTagValue3" : {"Ref" : "BackupTagValue3"},
+                        "BackupTagKey4" : {"Ref" : "BackupTagKey4"},
+                        "BackupTagValue4" : {"Ref" : "BackupTagValue4"},
+                        "BackupTagKey5" : {"Ref" : "BackupTagKey5"},
+                        "BackupTagValue5" : {"Ref" : "BackupTagValue5"},
+                        "BackupTagKey6" : {"Ref" : "BackupTagKey6"},
+                        "BackupTagValue6" : {"Ref" : "BackupTagValue6"},
+                        "BackupTagKey7" : {"Ref" : "BackupTagKey7"},
+                        "BackupTagValue7" : {"Ref" : "BackupTagValue7"},
+                        "BackupTagKey8" : {"Ref" : "BackupTagKey8"},
+                        "BackupTagValue8" : {"Ref" : "BackupTagValue8"},
+                        "BackupTagKey9" : {"Ref" : "BackupTagKey9"},
+                        "BackupTagValue9" : {"Ref" : "BackupTagValue9"},
+                        "BackupTagKey10" : {"Ref" : "BackupTagKey10"},
+                        "BackupTagValue10" : {"Ref" : "BackupTagValue10"}
+                    }
+                }
+            }
+        },
+        "ScheduledTagFSxRule" : {
+            "Type" : "AWS::Events::Rule",
+            "Properties" : {
+                "Description" : "Scheduled rule to add tags to FSx Backups",
+                "ScheduleExpression" : {"Fn::Join":["", ["cron(",{"Ref" : "CronExpression"},")"]]},
+                "State" : "ENABLED",
+                "Targets" : [
+                    {
+                        "Arn" : { "Fn::GetAtt" : ["FSxTagBackupLambda", "Arn"] },
+                        "Id" : "TargetFSxTagBackupLambda"
+                    }
+                ]
+            }
+        },
+        "PermissionForEventsToInvokeLambda": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": { "Ref": "FSxTagBackupLambda" },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": { "Fn::GetAtt": ["ScheduledTagFSxRule", "Arn"] }
+            }
+        }
+    },
+    "Outputs" : {
+        "LambdaID" : {
+            "Description" : "Arn of lambda function created",
+            "Value" : {"Ref" : "FSxTagBackupLambda"}
+        }
+    },
+    "Metadata" : {
+        "AWS::CloudFormation::Interface" : {
+            "ParameterGroups" : [
+                {
+                    "Label" : {"default" : "Deployment Details"},
+                    "Parameters" : ["CronExpression", "LambdaS3Bucket", "LambdaS3Object"]
+                },
+                {
+                    "Label" : {"default" : "Backup Tags"},
+                    "Parameters" : ["BackupTagKey1", "BackupTagValue1","BackupTagKey2", "BackupTagValue2","BackupTagKey3", "BackupTagValue3","BackupTagKey4", "BackupTagValue4","BackupTagKey5", "BackupTagValue5","BackupTagKey6", "BackupTagValue6","BackupTagKey7", "BackupTagValue7","BackupTagKey8", "BackupTagValue8","BackupTagKey9", "BackupTagValue9","BackupTagKey10", "BackupTagValue10"]
+                }
+            ]
+        }
+    }
+}
