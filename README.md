@@ -1,0 +1,1 @@
+# Windows-FSx-autoscale-tagging
